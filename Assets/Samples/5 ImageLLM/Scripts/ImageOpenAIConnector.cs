@@ -206,6 +206,8 @@ namespace QuestCameraKit.OpenAI
 
         private IEnumerator SendImageRequest(Texture2D image, string command)
         {
+            Debug.Log("Starting SendImageRequest with command: " + command);
+
             var base64Image = "";
             if (commandMode == OpenAICommandMode.ImageAndText || commandMode == OpenAICommandMode.ImageOnly)
             {
@@ -216,6 +218,7 @@ namespace QuestCameraKit.OpenAI
                 if (imageBytes == null || imageBytes.Length == 0)
                 {
                     Debug.LogError(
+                        "TEST LOG: Failed to encode image. The texture might not be readable. Exiting request." +
                         "Failed to encode image to JPG. Check that the texture is readable and uncompressed.");
                     yield break;
                 }
@@ -257,6 +260,8 @@ namespace QuestCameraKit.OpenAI
                               "\"max_tokens\":300" +
                               "}";
 
+            Debug.Log("Sending payload to OpenAI: " + payloadJson);
+
             using var request = new UnityWebRequest("https://api.openai.com/v1/chat/completions", "POST");
             var bodyRaw = Encoding.UTF8.GetBytes(payloadJson);
 
@@ -271,11 +276,13 @@ namespace QuestCameraKit.OpenAI
             if (request.result == UnityWebRequest.Result.ConnectionError ||
                 request.result == UnityWebRequest.Result.ProtocolError)
             {
-                Debug.LogError($"Error sending request: {request.error} (Response code: {request.responseCode})");
+                Debug.LogError($"Error sending request: {request.error} (Response code: {request.responseCode}). Full response: {request.downloadHandler.text}");
             }
             else
             {
                 var jsonResponse = JSON.Parse(request.downloadHandler.text);
+                Debug.Log("Received successful response from OpenAI: " + jsonResponse.ToString());
+
                 var responseContent = jsonResponse["choices"][0]["message"]["content"].Value;
                 onResponseReceived?.Invoke(responseContent);
                 StopProcessingSound("");
